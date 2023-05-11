@@ -469,7 +469,7 @@ impl<'a> LowLevelCall<'a> {
 
                 let capacity: Symbol = self.arguments[0];
                 let elem_layout = unwrap_list_elem_layout(self.ret_layout_raw);
-                let elem_layout = backend.layout_interner.get(elem_layout);
+                let elem_layout = backend.layout_interner.get_repr(elem_layout);
                 let (elem_width, elem_align) =
                     elem_layout.stack_size_and_alignment(backend.layout_interner, TARGET_INFO);
 
@@ -508,7 +508,7 @@ impl<'a> LowLevelCall<'a> {
 
                 // Load monomorphization constants
                 let elem_layout = unwrap_list_elem_layout(self.ret_layout_raw);
-                let elem_layout = backend.layout_interner.get(elem_layout);
+                let elem_layout = backend.layout_interner.get_repr(elem_layout);
                 let (elem_width, elem_align) =
                     elem_layout.stack_size_and_alignment(backend.layout_interner, TARGET_INFO);
                 backend.code_builder.i32_const(elem_align as i32);
@@ -524,7 +524,7 @@ impl<'a> LowLevelCall<'a> {
                 let spare: Symbol = self.arguments[1];
 
                 let elem_layout = unwrap_list_elem_layout(self.ret_layout_raw);
-                let elem_layout = backend.layout_interner.get(elem_layout);
+                let elem_layout = backend.layout_interner.get_repr(elem_layout);
                 let (elem_width, elem_align) =
                     elem_layout.stack_size_and_alignment(backend.layout_interner, TARGET_INFO);
 
@@ -565,7 +565,7 @@ impl<'a> LowLevelCall<'a> {
                 let list: Symbol = self.arguments[0];
 
                 let elem_layout = unwrap_list_elem_layout(self.ret_layout_raw);
-                let elem_layout = backend.layout_interner.get(elem_layout);
+                let elem_layout = backend.layout_interner.get_repr(elem_layout);
                 let (elem_width, elem_align) =
                     elem_layout.stack_size_and_alignment(backend.layout_interner, TARGET_INFO);
 
@@ -695,7 +695,7 @@ impl<'a> LowLevelCall<'a> {
                 let in_memory_layout =
                     backend
                         .layout_interner
-                        .insert_no_semantic(LayoutRepr::Struct {
+                        .insert_direct_no_semantic(LayoutRepr::Struct {
                             field_layouts: backend.env.arena.alloc([elem_layout]),
                         });
                 let dec_fn = backend.get_refcount_fn_index(in_memory_layout, HelperOp::Dec);
@@ -743,7 +743,7 @@ impl<'a> LowLevelCall<'a> {
                 let in_memory_layout =
                     backend
                         .layout_interner
-                        .insert_no_semantic(LayoutRepr::Struct {
+                        .insert_direct_no_semantic(LayoutRepr::Struct {
                             field_layouts: backend.env.arena.alloc([elem_layout]),
                         });
                 let dec_fn = backend.get_refcount_fn_index(in_memory_layout, HelperOp::Dec);
@@ -2386,7 +2386,7 @@ pub fn call_higher_order_lowlevel<'a>(
         let wrapped_captures_layout =
             backend
                 .layout_interner
-                .insert_no_semantic(LayoutRepr::struct_(
+                .insert_direct_no_semantic(LayoutRepr::struct_(
                     backend.env.arena.alloc([closure_data_layout]),
                 ));
 
@@ -2461,7 +2461,7 @@ pub fn call_higher_order_lowlevel<'a>(
             argument_layouts.iter().take(n_non_closure_args).map(|lay| {
                 backend
                     .layout_interner
-                    .insert_no_semantic(LayoutRepr::Boxed(*lay))
+                    .insert_direct_no_semantic(LayoutRepr::Boxed(*lay))
             });
 
         wrapper_arg_layouts.push(wrapped_captures_layout);
@@ -2473,7 +2473,7 @@ pub fn call_higher_order_lowlevel<'a>(
                 wrapper_arg_layouts.push(
                     backend
                         .layout_interner
-                        .insert_no_semantic(LayoutRepr::Boxed(*result_layout)),
+                        .insert_direct_no_semantic(LayoutRepr::Boxed(*result_layout)),
                 );
                 ProcLayout {
                     arguments: wrapper_arg_layouts.into_bump_slice(),
@@ -2565,7 +2565,7 @@ pub fn call_higher_order_lowlevel<'a>(
                     .layout_interner
                     .get_repr(backend.storage.symbol_layouts[xs]),
             );
-            let elem_layout = backend.layout_interner.get(elem_layout);
+            let elem_layout = backend.layout_interner.get_repr(elem_layout);
             let (element_width, alignment) =
                 elem_layout.stack_size_and_alignment(backend.layout_interner, TARGET_INFO);
 
@@ -2634,7 +2634,7 @@ fn list_map_n<'a>(
     );
 
     let elem_ret = unwrap_list_elem_layout(backend.layout_interner.get_repr(return_layout));
-    let elem_ret = backend.layout_interner.get(elem_ret);
+    let elem_ret = backend.layout_interner.get_repr(elem_ret);
     let (elem_ret_size, elem_ret_align) =
         elem_ret.stack_size_and_alignment(backend.layout_interner, TARGET_INFO);
 
@@ -2668,7 +2668,7 @@ fn list_map_n<'a>(
             // Here we wrap the layout in a Struct to ensure we get the right code gen
             let el_ptr = backend
                 .layout_interner
-                .insert_no_semantic(LayoutRepr::Struct {
+                .insert_direct_no_semantic(LayoutRepr::Struct {
                     field_layouts: backend.env.arena.alloc([*el]),
                 });
             let idx = backend.get_refcount_fn_index(el_ptr, HelperOp::Dec);
@@ -2707,11 +2707,12 @@ fn ensure_symbol_is_in_memory<'a>(
                 offset,
                 symbol,
             );
-            let in_memory_layout = backend
-                .layout_interner
-                .insert_no_semantic(LayoutRepr::Struct {
-                    field_layouts: arena.alloc([layout]),
-                });
+            let in_memory_layout =
+                backend
+                    .layout_interner
+                    .insert_direct_no_semantic(LayoutRepr::Struct {
+                        field_layouts: arena.alloc([layout]),
+                    });
             (frame_ptr, offset, in_memory_layout)
         }
     }
