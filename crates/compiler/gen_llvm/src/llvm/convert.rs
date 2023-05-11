@@ -36,7 +36,7 @@ pub fn basic_type_from_layout<'a, 'ctx, 'env>(
 ) -> BasicTypeEnum<'ctx> {
     use LayoutRepr::*;
 
-    match layout_interner.get(layout).repr {
+    match layout_interner.get_repr(layout) {
         Struct {
             field_layouts: sorted_fields,
             ..
@@ -153,7 +153,7 @@ pub fn argument_type_from_layout<'a, 'ctx>(
 ) -> BasicTypeEnum<'ctx> {
     use LayoutRepr::*;
 
-    match layout_interner.get(layout).repr {
+    match layout_interner.get_repr(layout) {
         LambdaSet(lambda_set) => {
             argument_type_from_layout(env, layout_interner, lambda_set.runtime_representation())
         }

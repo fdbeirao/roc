@@ -1015,7 +1015,7 @@ fn to_relevant_branch_help<'a>(
                     match layout {
                         UnionLayout::NonRecursive([[arg]])
                             if matches!(
-                                interner.get(*arg).repr,
+                                interner.get_repr(*arg),
                                 LayoutRepr::Struct {
                                     field_layouts: [_],
                                     ..
@@ -1579,7 +1579,7 @@ fn path_to_expr_help<'a>(
             PathInstruction::TagIndex { index, tag_id } => {
                 let index = *index;
 
-                match layout_interner.chase_recursive(layout).repr {
+                match layout_interner.chase_recursive(layout) {
                     LayoutRepr::Union(union_layout) => {
                         let inner_expr = Expr::UnionAtIndex {
                             tag_id: *tag_id,
@@ -1632,7 +1632,7 @@ fn path_to_expr_help<'a>(
             PathInstruction::ListIndex { index } => {
                 let list_sym = symbol;
 
-                match layout_interner.get(layout).repr {
+                match layout_interner.get_repr(layout) {
                     LayoutRepr::Builtin(Builtin::List(elem_layout)) => {
                         let (index_sym, new_stores) = build_list_index_probe(env, list_sym, index);
 
@@ -1679,7 +1679,7 @@ fn test_to_comparison<'a>(
             // (e.g. record pattern guard matches)
             debug_assert!(union.alternatives.len() > 1);
 
-            match layout_interner.chase_recursive(test_layout).repr {
+            match layout_interner.chase_recursive(test_layout) {
                 LayoutRepr::Union(union_layout) => {
                     let lhs = Expr::Literal(Literal::Int((tag_id as i128).to_ne_bytes()));
 
@@ -1769,7 +1769,7 @@ fn test_to_comparison<'a>(
             let list_layout = test_layout;
             let list_sym = rhs_symbol;
 
-            match layout_interner.get(list_layout).repr {
+            match layout_interner.get_repr(list_layout) {
                 LayoutRepr::Builtin(Builtin::List(_elem_layout)) => {
                     let real_len_expr = Expr::Call(Call {
                         call_type: CallType::LowLevel {
@@ -2316,7 +2316,7 @@ fn decide_to_branching<'a>(
             // We have learned more about the exact layout of the cond (based on the path)
             // but tests are still relative to the original cond symbol
             let inner_cond_layout_raw = layout_cache.interner.chase_recursive(inner_cond_layout);
-            let mut switch = if let LayoutRepr::Union(union_layout) = inner_cond_layout_raw.repr {
+            let mut switch = if let LayoutRepr::Union(union_layout) = inner_cond_layout_raw {
                 let tag_id_symbol = env.unique_symbol();
 
                 let temp = Stmt::Switch {
@@ -2338,7 +2338,7 @@ fn decide_to_branching<'a>(
                     union_layout.tag_id_layout(),
                     env.arena.alloc(temp),
                 )
-            } else if let LayoutRepr::Builtin(Builtin::List(_)) = inner_cond_layout_raw.repr {
+            } else if let LayoutRepr::Builtin(Builtin::List(_)) = inner_cond_layout_raw {
                 let len_symbol = env.unique_symbol();
 
                 let switch = Stmt::Switch {
